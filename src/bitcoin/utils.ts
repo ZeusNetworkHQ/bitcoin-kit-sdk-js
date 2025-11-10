@@ -82,7 +82,7 @@ export function getTransactionVBytesPrediction(
       return {
         input:
           SIZE.OUTPOINT +
-          SIZE.SCRIPT_PUBKEY_LENGTH +
+          SIZE.SCRIPT_SIG_LENGTH_SMALL +
           SIZE.P2WSH_WITNESS +
           SIZE.N_SEQUENCE,
         output: SIZE.N_VALUE + SIZE.SCRIPT_PUBKEY_LENGTH + SIZE.P2WSH_SPK,
