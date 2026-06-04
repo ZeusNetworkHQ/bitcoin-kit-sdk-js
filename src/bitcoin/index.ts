@@ -12,15 +12,17 @@ import { toXOnly } from "bitcoinjs-lib/src/psbt/bip371";
 import { Taptree } from "bitcoinjs-lib/src/types";
 import { toHex } from "uint8array-tools";
 
+import { BitcoinAddressType } from "../zpl/two-way-peg/types";
 import { UTXO } from "./types";
+import {
+  estimatedTransactionVBytes,
+  getTransactionVBytesPrediction,
+} from "./utils";
 
 export * from "./types";
 
 initEccLib(ecc);
 
-const TX_INPUT_VBYTE = 58;
-const TX_BASIC_VBYTE = 10;
-const TX_OUTPUT_VBYTE = 44;
 const DUST_AMOUNT = 546;
 
 /**
@@ -73,10 +75,15 @@ export function deriveHotReserveAddress(
   };
 }
 
-const isSpendable = (utxo: UTXO, satoshisPerVBytes: number): boolean => {
+const isSpendable = (
+  utxo: UTXO,
+  satoshisPerVBytes: number,
+  addressType: BitcoinAddressType = BitcoinAddressType.P2tr
+): boolean => {
+  const { input: inputVBytes } = getTransactionVBytesPrediction(addressType);
   return (
     BigInt(Math.round(utxo.satoshis)) >
-    BigInt(Math.ceil(satoshisPerVBytes * TX_INPUT_VBYTE))
+    BigInt(Math.ceil(satoshisPerVBytes * inputVBytes))
   );
 };
 
@@ -203,7 +210,8 @@ export const buildDepositTransaction = (
   amount: number,
   userXOnlyPubKey: Buffer,
   feeRate: number,
-  network: networks.Network
+  network: networks.Network,
+  addressType: BitcoinAddressType = BitcoinAddressType.P2tr
 ): {
   psbt: Psbt;
   returnAmount: number;
@@ -250,8 +258,11 @@ export const buildDepositTransaction = (
 
   const psbt = new Psbt({ network }).setVersion(2);
 
-  // Spend all means only 1 output
-  let totalVbyte = TX_BASIC_VBYTE + TX_OUTPUT_VBYTE * (isDepositAll ? 1 : 2);
+  let totalVBytes = estimatedTransactionVBytes(
+    addressType,
+    0,
+    isDepositAll ? 1 : 2
+  );
   let preparedAmount = BigInt(0);
 
   const usedUTXOs: UTXO[] = [];
@@ -266,12 +277,13 @@ export const buildDepositTransaction = (
       tapInternalKey: userXOnlyPubKey,
     });
     preparedAmount += BigInt(utxo.satoshis);
-    totalVbyte += TX_INPUT_VBYTE;
     usedUTXOs.push(utxo);
-    if (
-      preparedAmount >=
-      BigInt(amount) + BigInt(feeRate) * BigInt(Math.ceil(totalVbyte))
-    ) {
+    totalVBytes = estimatedTransactionVBytes(
+      addressType,
+      usedUTXOs.length,
+      isDepositAll ? 1 : 2
+    );
+    if (preparedAmount >= BigInt(amount) + BigInt(totalVBytes * feeRate)) {
       break;
     }
   }
@@ -279,7 +291,7 @@ export const buildDepositTransaction = (
   const returnAmount = Number(
     preparedAmount -
       BigInt(amount) -
-      BigInt(feeRate) * BigInt(Math.ceil(totalVbyte))
+      BigInt(feeRate) * BigInt(Math.ceil(totalVBytes))
   );
 
   if (returnAmount < 0) {
@@ -315,7 +327,8 @@ export const buildDepositTransaction = (
  */
 export const estimateMaxSpendableAmount = (
   utxos: UTXO[],
-  feeRate: number
+  feeRate: number,
+  addressType: BitcoinAddressType = BitcoinAddressType.P2tr
 ): number => {
   if (utxos.length === 0) {
     return 0;
@@ -327,20 +340,19 @@ export const estimateMaxSpendableAmount = (
     return 0;
   }
 
-  const { totalSpendableAmount, totalVbyte } = spendableUTXOs.reduce(
-    (acc, utxo) => ({
-      totalSpendableAmount: acc.totalSpendableAmount + BigInt(utxo.satoshis),
-      totalVbyte: acc.totalVbyte + TX_INPUT_VBYTE,
-    }),
-    {
-      totalSpendableAmount: BigInt(0),
-      // Spend all means only 1 output
-      totalVbyte: TX_BASIC_VBYTE + TX_OUTPUT_VBYTE,
-    }
+  const totalSpendableAmount = spendableUTXOs.reduce(
+    (acc, utxo) => acc + BigInt(utxo.satoshis),
+    BigInt(0)
+  );
+
+  const totalVBytes = estimatedTransactionVBytes(
+    addressType,
+    spendableUTXOs.length,
+    1 // Spend all means only 1 output
   );
 
   const maxSpendableAmount =
-    totalSpendableAmount - BigInt(feeRate) * BigInt(Math.ceil(totalVbyte));
+    totalSpendableAmount - BigInt(feeRate) * BigInt(Math.ceil(totalVBytes));
 
   return Number(maxSpendableAmount);
 };

@@ -247,6 +247,13 @@ export const AddWithdrawalRequestSchema: Structure<AddWithdrawalRequest> =
     borsh.u64("withdrawalAmount"),
   ]);
 
+export interface DeprecateWithdrawalRequest {
+  discriminator: number;
+}
+
+export const DeprecateWithdrawalRequestSchema: Structure<DeprecateWithdrawalRequest> =
+  borsh.struct([borsh.u8("discriminator")]);
+
 export interface AddWithdrawalRequestWithAddressType {
   discriminator: number;
   receiverAddress: Uint8Array;
