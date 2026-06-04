@@ -1,6 +1,6 @@
 {
   "name": "@zeus-network/zeus-stack-sdk",
-  "version": "0.11.9",
+  "version": "0.11.10",
   "description": "SDK for Zeus Network's Bitcoin-to-zBTC cross-chain protocol on Solana",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
