@@ -5,6 +5,7 @@ import {
 } from "@solana/web3.js";
 import BN from "bn.js";
 
+import LiquidityManagementPdas from "../liquidity-management/pda";
 import TwoWayPegPdas from "./pda";
 import {
   AddWithdrawalRequestSchema,
@@ -13,6 +14,7 @@ import {
   BitcoinAddressType,
   CreateEntityDerivedReserveAddressSchema,
   CreateHotReserveBucketSchema,
+  DeprecateWithdrawalRequestSchema,
   MigrateHotReserveBucketToEntityDerivedReserveAddressSchema,
   ReactivateHotReserveBucketSchema,
 } from "./types";
@@ -174,6 +176,66 @@ class TwoWayPegInstructions {
           isSigner: false,
           isWritable: true,
         },
+        {
+          pubkey: liquidityManagementConfigurationPda,
+          isSigner: false,
+          isWritable: false,
+        },
+        {
+          pubkey: liquidityManagementProgramId,
+          isSigner: false,
+          isWritable: false,
+        },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      programId: this.programId,
+      data: instructionData,
+    });
+
+    return ix;
+  }
+
+  buildDeprecateWithdrawalRequestIx(
+    liquidityManagementProgramId: PublicKey,
+    requester: PublicKey,
+    reserveSettingPda: PublicKey,
+    withdrawalRequestPda: PublicKey
+  ) {
+    const instructionData = Buffer.alloc(DeprecateWithdrawalRequestSchema.span);
+    DeprecateWithdrawalRequestSchema.encode(
+      {
+        discriminator: 132,
+      },
+      instructionData
+    );
+
+    const liquidityManagementPdas = new LiquidityManagementPdas(
+      liquidityManagementProgramId
+    );
+    const twoWayPegProgramCPIIdentity = this.pdas.deriveCpiIdentityAddress();
+    const configurationPda = this.pdas.deriveConfigurationAddress();
+    const liquidityManagementConfigurationPda =
+      liquidityManagementPdas.deriveConfigurationAddress();
+    const vaultSettingPda =
+      liquidityManagementPdas.deriveVaultSettingAddress(reserveSettingPda);
+    const positionPda = liquidityManagementPdas.derivePositionAddress(
+      vaultSettingPda,
+      requester
+    );
+
+    const ix = new TransactionInstruction({
+      keys: [
+        { pubkey: requester, isSigner: true, isWritable: true },
+        {
+          pubkey: twoWayPegProgramCPIIdentity,
+          isSigner: false,
+          isWritable: false,
+        },
+        { pubkey: configurationPda, isSigner: false, isWritable: false },
+        { pubkey: reserveSettingPda, isSigner: false, isWritable: false },
+        { pubkey: vaultSettingPda, isSigner: false, isWritable: false },
+        { pubkey: withdrawalRequestPda, isSigner: false, isWritable: true },
+        { pubkey: positionPda, isSigner: false, isWritable: true },
         {
           pubkey: liquidityManagementConfigurationPda,
           isSigner: false,
