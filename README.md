@@ -4,13 +4,13 @@ Official TypeScript/JavaScript SDK for Zeus Network's Bitcoin-to-zBTC cross-chai
 
 ## Features
 
-- **Cross-Chain Protocol**: Transfer Bitcoin to zBTC on Solana seamlessly
+- **Cross-Chain Protocol**: Seamlessly transfer Bitcoin to zBTC on Solana
 - **Complete Bitcoin Integration**: PSBT construction, address derivation, and UTXO management
 - **Solana Program Interaction**: Account fetching, instruction building, and PDA derivation
 - **TypeScript Support**: Full type safety with comprehensive TypeScript definitions
 - **Dual Output**: ESM/CJS support for both Node.js and browser environments
 - **Hot & Entity-Derived Reserves**: Support for different reserve address types
-- **Fee Estimation**: Accurate Bitcoin network fee calculation
+- **Fee Estimation**: Accurate Bitcoin network fee estimation and calculation
 
 ## Usage
 
