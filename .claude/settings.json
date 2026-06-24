@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm lint)",
+      "Bash(pnpm build)",
+      "Bash(pnpm format)",
+      "Bash(pnpm spell-check)",
+      "Bash(pnpm i --frozen-lockfile)",
+      "Read"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/check-env.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
