@@ -8,3 +8,4 @@ export {
   TwoWayPegClient,
   TwoWayPegError,
 } from "./zpl";
+export { BtcFeeEstimator } from "./bitcoin/fee-estimator";
